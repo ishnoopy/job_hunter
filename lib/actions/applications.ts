@@ -3,6 +3,7 @@
 import type { Application, ApplicationStatus } from "@/app/(private)/dashboard/types";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
+import { createRateLimiter, RateLimitPresets } from "@/lib/rate-limit";
 
 export interface CreateApplicationInput {
   companyName: string;
@@ -19,6 +20,11 @@ export interface UpdateApplicationInput extends Partial<CreateApplicationInput> 
   id: string;
 }
 
+// Rate limiters for different operation types
+const readRateLimiter = createRateLimiter(RateLimitPresets.RELAXED); // 30 requests per minute
+const mutateRateLimiter = createRateLimiter(RateLimitPresets.MODERATE); // 10 requests per minute
+const deleteRateLimiter = createRateLimiter(RateLimitPresets.STRICT); // 5 requests per minute
+
 /**
  * Fetches all job applications for the current user
  */
@@ -30,6 +36,8 @@ export async function getApplications(): Promise<Application[]> {
   if (userError || !user) {
     throw new Error("Unauthorized");
   }
+
+  await readRateLimiter.check(user.id);
 
   const { data, error } = await supabase
     .from("applications")
@@ -78,6 +86,8 @@ export async function getApplicationById(applicationId: string): Promise<Applica
     throw new Error("Unauthorized");
   }
 
+  await readRateLimiter.check(user.id);
+
   const { data, error } = await supabase
     .from("applications")
     .select("*")
@@ -113,6 +123,8 @@ export async function createApplication(input: CreateApplicationInput): Promise<
   if (userError || !user) {
     throw new Error("Unauthorized");
   }
+
+  await mutateRateLimiter.check(user.id);
 
   const { data, error } = await supabase
     .from("applications")
@@ -160,6 +172,8 @@ export async function updateApplication(input: UpdateApplicationInput): Promise<
   if (userError || !user) {
     throw new Error("Unauthorized");
   }
+
+  await mutateRateLimiter.check(user.id);
 
   const updateData: Record<string, unknown> = {};
 
@@ -211,6 +225,8 @@ export async function deleteApplication(applicationId: string): Promise<void> {
     throw new Error("Unauthorized");
   }
 
+  await deleteRateLimiter.check(user.id);
+
   const { error } = await supabase
     .from("applications")
     .delete()
@@ -236,6 +252,8 @@ export async function deleteBulkApplications(applicationIds: string[]): Promise<
     throw new Error("Unauthorized");
   }
 
+  await deleteRateLimiter.check(user.id);
+
   const { error } = await supabase
     .from("applications")
     .delete()
@@ -258,6 +276,8 @@ export async function getApplicationsCount(): Promise<number> {
     throw new Error("Unauthorized");
   }
 
+  await readRateLimiter.check(user.id);
+
   const { data, error } = await supabase
     .from("applications")
     .select("count", { count: "exact" })
@@ -278,6 +298,8 @@ export async function getApplicationsCountByStatus(status: ApplicationStatus): P
   if (userError || !user) {
     throw new Error("Unauthorized");
   }
+
+  await readRateLimiter.check(user.id);
 
   const { data, error } = await supabase
     .from("applications")
@@ -323,6 +345,8 @@ export async function getApplicationsMetrics(): Promise<MetricsData> {
   if (userError || !user) {
     throw new Error("Unauthorized");
   }
+
+  await readRateLimiter.check(user.id);
 
   // Fetch all applications for metrics calculation
   const { data: applications, error } = await supabase
