@@ -37,10 +37,11 @@ export default function PrivateLayout({ children }: PrivateLayoutProps) {
   return (
     <QueryProvider>
       <div className="min-h-screen bg-bg-secondary">
-        <nav className="border-b border-border bg-bg-primary shadow-sm">
+        <nav className="sticky top-0 z-50 border-b border-border bg-background shadow-sm">
           <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-            <Link href="/dashboard" className="text-xl font-semibold text-text-primary hover:text-primary transition-colors">
-              Application Tracker
+            <Link href="/dashboard" className="flex items-center gap-2 transition-colors hover:text-primary">
+              <span className="text-2xl">🌱</span>
+              <span className="font-script text-2xl text-primary">Job Hunt</span>
             </Link>
             <UserMenu />
           </div>

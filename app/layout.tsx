@@ -1,6 +1,7 @@
 import { AuthProvider } from "@/components/auth-provider";
+import { ThemeProvider } from "@/components/theme-provider";
 import type { Metadata } from "next";
-import { Funnel_Sans } from "next/font/google";
+import { Funnel_Sans, Pacifico } from "next/font/google";
 import "./globals.css";
 
 const font = Funnel_Sans({
@@ -10,9 +11,16 @@ const font = Funnel_Sans({
   display: "swap",
 });
 
+const scriptFont = Pacifico({
+  subsets: ["latin"],
+  weight: ["400"],
+  variable: "--font-script",
+  display: "swap",
+});
+
 export const metadata: Metadata = {
-  title: "Application Tracker",
-  description: "Track your job applications",
+  title: "Job hunt",
+  description: "Track your job hunt",
 };
 
 export default function RootLayout({
@@ -21,11 +29,13 @@ export default function RootLayout({
   children: React.ReactNode;
 }>) {
   return (
-    <html lang="en">
-      <body className={`${font.variable} antialiased`}>
-        <AuthProvider>
-          {children}
-        </AuthProvider>
+    <html lang="en" suppressHydrationWarning>
+      <body className={`${font.variable} ${scriptFont.variable} antialiased`}>
+        <ThemeProvider>
+          <AuthProvider>
+            {children}
+          </AuthProvider>
+        </ThemeProvider>
       </body>
     </html>
   );

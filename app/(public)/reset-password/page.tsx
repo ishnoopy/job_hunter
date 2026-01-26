@@ -1,17 +1,17 @@
 'use client'
 
-import { useState } from 'react'
-import { useRouter } from 'next/navigation'
-import { useForm } from 'react-hook-form'
-import { zodResolver } from '@hookform/resolvers/zod'
-import { createClient } from '@/lib/supabase-client'
+import { Alert } from '@/components/ui/alert'
 import { Button } from '@/components/ui/button'
+import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
 import { Input } from '@/components/ui/input'
 import { Label } from '@/components/ui/label'
-import { Card, CardContent, CardDescription, CardFooter, CardHeader, CardTitle } from '@/components/ui/card'
-import { Alert } from '@/components/ui/alert'
 import { resetPasswordSchema, type ResetPasswordFormData } from '@/lib/auth-schemas'
 import type { AuthError } from '@/lib/auth-types'
+import { createClient } from '@/lib/supabase-client'
+import { zodResolver } from '@hookform/resolvers/zod'
+import { useRouter } from 'next/navigation'
+import { useState } from 'react'
+import { useForm } from 'react-hook-form'
 
 /**
  * Reset password page component for setting a new password
@@ -65,12 +65,12 @@ export default function ResetPasswordPage() {
         <form onSubmit={handleSubmit(onSubmit)}>
           <CardContent className="space-y-4">
             {error && (
-              <Alert variant="error">
+              <Alert variant="destructive">
                 <p className="text-sm">{error}</p>
               </Alert>
             )}
             {successMessage && (
-              <Alert variant="success">
+              <Alert variant="default">
                 <p className="text-sm">{successMessage}</p>
               </Alert>
             )}

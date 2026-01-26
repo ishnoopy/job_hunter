@@ -14,4 +14,5 @@ export interface Application {
   status: ApplicationStatus;
   platform: string;
   notes: string;
+  respondedAt?: Date;
 }

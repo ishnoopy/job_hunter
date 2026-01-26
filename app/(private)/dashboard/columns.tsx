@@ -1,9 +1,7 @@
 "use client";
 
-import { ColumnDef } from "@tanstack/react-table";
-import { MoreHorizontal, ArrowUpDown } from "lucide-react";
-import { Checkbox } from "@/components/ui/checkbox";
 import { Button } from "@/components/ui/button";
+import { Checkbox } from "@/components/ui/checkbox";
 import {
   DropdownMenu,
   DropdownMenuContent,
@@ -19,8 +17,16 @@ import {
   SelectTrigger,
   SelectValue,
 } from "@/components/ui/select";
-import { Application, ApplicationStatus } from "./types";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 import { cn } from "@/lib/utils";
+import { ColumnDef } from "@tanstack/react-table";
+import { ArrowUpDown, MoreHorizontal } from "lucide-react";
+import { Application, ApplicationStatus } from "./types";
 
 const statusOptions: ApplicationStatus[] = [
   "applied",
@@ -29,6 +35,14 @@ const statusOptions: ApplicationStatus[] = [
   "rejected",
   "withdrawn",
 ];
+
+const statusColors = {
+  applied: "bg-blue-100 text-blue-700 border-blue-200",
+  interviewing: "bg-purple-100 text-purple-700 border-purple-200",
+  offer: "bg-green-100 text-green-700 border-green-200",
+  rejected: "bg-red-100 text-red-700 border-red-200",
+  withdrawn: "bg-gray-100 text-gray-700 border-gray-200",
+};
 
 interface ColumnsProps {
   onStatusChange: (id: string, status: ApplicationStatus) => void;
@@ -156,7 +170,29 @@ export function getColumns({
     },
     {
       accessorKey: "status",
-      header: "Status",
+      header: ({ column }) => {
+        const filterValue = column.getFilterValue() as string | undefined;
+        return (
+          <Select
+            value={filterValue || "all"}
+            onValueChange={(value) => {
+              column.setFilterValue(value === "all" ? undefined : value);
+            }}
+          >
+            <SelectTrigger className="h-8 w-[100px] px-2 text-xs">
+              <SelectValue placeholder="All" />
+            </SelectTrigger>
+            <SelectContent>
+              <SelectItem value="all">All</SelectItem>
+              {statusOptions.map((option) => (
+                <SelectItem key={option} value={option} className="text-xs">
+                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                </SelectItem>
+              ))}
+            </SelectContent>
+          </Select>
+        );
+      },
       cell: ({ row }) => {
         const status = row.getValue("status") as ApplicationStatus;
         return (
@@ -166,13 +202,28 @@ export function getColumns({
               onStatusChange(row.original.id, value)
             }
           >
-            <SelectTrigger className="w-[140px]">
-              <SelectValue />
+            <SelectTrigger
+              className={cn(
+                "inline-flex h-auto items-center rounded-full border px-2.5 py-0.5 text-xs font-semibold transition-colors hover:opacity-80 focus:ring-0 focus:ring-offset-0",
+                statusColors[status]
+              )}
+            >
+              <SelectValue>
+                {status.charAt(0).toUpperCase() + status.slice(1)}
+              </SelectValue>
             </SelectTrigger>
             <SelectContent>
               {statusOptions.map((option) => (
                 <SelectItem key={option} value={option}>
-                  {option.charAt(0).toUpperCase() + option.slice(1)}
+                  <div className="flex items-center gap-2">
+                    <span
+                      className={cn(
+                        "inline-flex h-2 w-2 rounded-full",
+                        statusColors[option].split(" ")[0].replace("bg-", "bg-")
+                      )}
+                    />
+                    {option.charAt(0).toUpperCase() + option.slice(1)}
+                  </div>
                 </SelectItem>
               ))}
             </SelectContent>
@@ -198,16 +249,34 @@ export function getColumns({
       cell: ({ row }) => {
         const isRejected = row.original.status === "rejected";
         const notes = row.getValue("notes") as string;
+        if (!notes) {
+          return (
+            <div className={cn(isRejected && "line-through text-muted-foreground")}>
+              —
+            </div>
+          );
+        }
         return (
-          <div
-            className={cn(
-              "max-w-[200px] truncate",
-              isRejected && "line-through text-muted-foreground"
-            )}
-            title={notes}
-          >
-            {notes || "—"}
-          </div>
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger asChild>
+                <div
+                  className={cn(
+                    "max-w-[200px] cursor-help truncate",
+                    isRejected && "line-through text-muted-foreground"
+                  )}
+                >
+                  {notes}
+                </div>
+              </TooltipTrigger>
+              <TooltipContent
+                className="max-w-sm whitespace-pre-wrap wrap-break-word"
+                side="top"
+              >
+                <p>{notes}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         );
       },
     },

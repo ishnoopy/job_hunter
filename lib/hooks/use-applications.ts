@@ -1,6 +1,6 @@
 "use client";
 
-import type { ApplicationStatus } from "@/app/(private)/applications/types";
+import type { ApplicationStatus } from "@/app/(private)/dashboard/types";
 import {
   createApplication,
   deleteApplication,
@@ -8,6 +8,7 @@ import {
   getApplications,
   getApplicationsCount,
   getApplicationsCountByStatus,
+  getApplicationsMetrics,
   updateApplication,
 } from "@/lib/actions/applications";
 import { useMutation, useQuery, useQueryClient } from "@tanstack/react-query";
@@ -34,6 +35,7 @@ export function useCreateApplication() {
     mutationFn: createApplication,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: APPLICATIONS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["applications-metrics"] });
     },
   });
 }
@@ -48,6 +50,7 @@ export function useUpdateApplication() {
     mutationFn: updateApplication,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: APPLICATIONS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["applications-metrics"] });
     },
   });
 }
@@ -62,6 +65,7 @@ export function useDeleteApplication() {
     mutationFn: deleteApplication,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: APPLICATIONS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["applications-metrics"] });
     },
   });
 }
@@ -76,6 +80,7 @@ export function useDeleteBulkApplications() {
     mutationFn: deleteBulkApplications,
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: APPLICATIONS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["applications-metrics"] });
     },
   });
 }
@@ -91,6 +96,7 @@ export function useUpdateApplicationStatus() {
       updateApplication({ id, status }),
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: APPLICATIONS_QUERY_KEY });
+      queryClient.invalidateQueries({ queryKey: ["applications-metrics"] });
     },
   });
 }
@@ -112,5 +118,15 @@ export function useApplicationsCountByStatus(status: ApplicationStatus) {
   return useQuery({
     queryKey: ["applications-count-by-status", status],
     queryFn: () => getApplicationsCountByStatus(status),
+  });
+}
+
+/**
+ * Hook to get comprehensive applications metrics
+ */
+export function useApplicationsMetrics() {
+  return useQuery({
+    queryKey: ["applications-metrics"],
+    queryFn: getApplicationsMetrics,
   });
 }

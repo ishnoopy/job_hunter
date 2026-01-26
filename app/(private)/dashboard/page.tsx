@@ -1,100 +1,155 @@
-'use client'
+"use client";
 
-import { useAuth } from '@/components/auth-provider'
-import { Button } from '@/components/ui/button'
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
-import { useApplicationsCount, useApplicationsCountByStatus } from '@/lib/hooks/use-applications'
-import Link from 'next/link'
+import { Button } from "@/components/ui/button";
+import {
+  useApplications,
+  useCreateApplication,
+  useDeleteApplication,
+  useDeleteBulkApplications,
+  useUpdateApplication,
+  useUpdateApplicationStatus,
+} from "@/lib/hooks/use-applications";
+import { Plus } from "lucide-react";
+import * as React from "react";
+import { getColumns } from "./columns";
+import { DataTable } from "./data-table";
+import { EditDialog } from "./edit-dialog";
+import { ApplicationMetrics } from "./metrics";
+import { Application, ApplicationStatus } from "./types";
 
-/**
- * Protected dashboard page component
- */
-export default function DashboardPage() {
-  const { user } = useAuth()
-  const { data: applicationsCount } = useApplicationsCount();
-  const { data: appliedApplicationsCount } = useApplicationsCountByStatus("applied");
+export default function ApplicationPage() {
+  const { data: applications, isLoading, error } = useApplications();
+
+  const createMutation = useCreateApplication();
+  const updateMutation = useUpdateApplication();
+  const deleteMutation = useDeleteApplication();
+  const bulkDeleteMutation = useDeleteBulkApplications();
+  const updateStatusMutation = useUpdateApplicationStatus();
+
+  const [editingApplication, setEditingApplication] =
+    React.useState<Application | null>(null);
+  const [isEditDialogOpen, setIsEditDialogOpen] = React.useState(false);
+
+  const handleStatusChange = (id: string, status: ApplicationStatus) => {
+    updateStatusMutation.mutate({ id, status });
+  };
+
+  const handleEdit = (application: Application) => {
+    setEditingApplication(application);
+    setIsEditDialogOpen(true);
+  };
+
+  const handleDelete = (id: string) => {
+    deleteMutation.mutate(id);
+  };
+
+  const handleBulkDelete = (selectedIds: string[]) => {
+    bulkDeleteMutation.mutate(selectedIds);
+  };
+
+  const handleSave = (updatedApplication: Application) => {
+    const isNew = !applications?.find((app) => app.id === updatedApplication.id);
+
+    if (isNew) {
+      createMutation.mutate({
+        companyName: updatedApplication.companyName,
+        jobTitle: updatedApplication.jobTitle,
+        location: updatedApplication.location,
+        dateApplied: updatedApplication.dateApplied,
+        status: updatedApplication.status,
+        platform: updatedApplication.platform,
+        notes: updatedApplication.notes,
+        respondedAt: updatedApplication.respondedAt,
+      });
+    } else {
+      updateMutation.mutate({
+        id: updatedApplication.id,
+        companyName: updatedApplication.companyName,
+        jobTitle: updatedApplication.jobTitle,
+        location: updatedApplication.location,
+        dateApplied: updatedApplication.dateApplied,
+        status: updatedApplication.status,
+        platform: updatedApplication.platform,
+        notes: updatedApplication.notes,
+        respondedAt: updatedApplication.respondedAt,
+      });
+    }
+  };
+
+  const handleAddNew = () => {
+    const newApplication: Application = {
+      id: "",
+      companyName: "",
+      jobTitle: "",
+      location: "",
+      dateApplied: new Date(),
+      status: "applied",
+      platform: "",
+      notes: "",
+    };
+    setEditingApplication(newApplication);
+    setIsEditDialogOpen(true);
+  };
+
+  const columns = getColumns({
+    onStatusChange: handleStatusChange,
+    onEdit: handleEdit,
+    onDelete: handleDelete,
+  });
+
+  if (error) {
+    return (
+      <div className="min-h-screen bg-bg-secondary px-4 py-12">
+        <div className="mx-auto max-w-7xl">
+          <div className="rounded-lg border border-red-200 bg-red-50 p-4 text-red-800">
+            <h2 className="font-semibold">Error loading applications</h2>
+            <p className="text-sm">{error.message}</p>
+          </div>
+        </div>
+      </div>
+    );
+  }
 
   return (
     <div className="min-h-screen bg-bg-secondary px-4 py-12">
       <div className="mx-auto max-w-7xl">
-        <div className="mb-10">
-          <h1 className="text-4xl font-semibold text-text-primary">Dashboard</h1>
-          <p className="mt-2 text-base text-text-secondary">
-            Welcome back, {user?.email}
-          </p>
+        <div className="mb-8 flex items-center justify-between">
+          <div>
+            <h1 className="text-3xl font-bold tracking-tight">Applications</h1>
+            <p className="text-muted-foreground">
+              Track and manage your job applications
+            </p>
+          </div>
+          <Button onClick={handleAddNew}>
+            <Plus className="mr-2 h-4 w-4" />
+            Add Application
+          </Button>
         </div>
 
-        <div className="grid gap-6 md:grid-cols-2 lg:grid-cols-3">
-          <Card className="border-border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="text-text-primary">Profile</CardTitle>
-              <CardDescription className="text-text-secondary">Your account information</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="space-y-4">
-                <div>
-                  <p className="text-sm font-medium text-text-tertiary">Email</p>
-                  <p className="text-sm text-text-primary mt-1">{user?.email}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-text-tertiary">User ID</p>
-                  <p className="text-sm text-text-primary font-mono mt-1">{user?.id}</p>
-                </div>
-                <div>
-                  <p className="text-sm font-medium text-text-tertiary">Created At</p>
-                  <p className="text-sm text-text-primary mt-1">
-                    {user?.created_at ? new Date(user.created_at).toLocaleDateString() : 'N/A'}
-                  </p>
-                </div>
-              </div>
-            </CardContent>
-          </Card>
+        {/* Metrics Overview */}
+        <ApplicationMetrics />
 
-          <Card className="border-border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="text-text-primary">Applications</CardTitle>
-              <CardDescription className="text-text-secondary">Track your job applications</CardDescription>
-            </CardHeader>
-            <CardContent>
-              <div className="text-center py-8">
-                <p className="text-5xl font-semibold text-text-primary">{applicationsCount}</p>
-                <p className="text-sm text-text-tertiary mt-2">Total applications</p>
-                <p className="text-sm text-text-tertiary mt-2">Applied: {appliedApplicationsCount}</p>
-              </div>
-            </CardContent>
-          </Card>
-
-          <Card className="border-border shadow-sm hover:shadow-md transition-shadow">
-            <CardHeader>
-              <CardTitle className="text-text-primary">Quick Actions</CardTitle>
-              <CardDescription className="text-text-secondary">Common tasks</CardDescription>
-            </CardHeader>
-            <CardContent className="space-y-3">
-              <Button className="w-full" variant="default">
-                Add Application
-              </Button>
-              <Link href="/applications">
-                <Button className="w-full" variant="outline">
-                  View All
-                </Button>
-              </Link>
-            </CardContent>
-          </Card>
-        </div>
-
-        <Card className="mt-8 border-border shadow-sm">
-          <CardHeader>
-            <CardTitle className="text-text-primary">Recent Activity</CardTitle>
-            <CardDescription className="text-text-secondary">Your latest application updates</CardDescription>
-          </CardHeader>
-          <CardContent>
-            <div className="text-center py-16 text-text-tertiary">
-              <p className="text-base">No recent activity</p>
-              <p className="text-sm mt-2">Start by adding your first application</p>
-            </div>
-          </CardContent>
-        </Card>
+        {isLoading ? (
+          <div className="flex items-center justify-center py-12">
+            <div className="h-10 w-10 animate-spin rounded-full border-4 border-border border-t-primary" />
+          </div>
+        ) : (
+          <DataTable
+            columns={columns}
+            data={applications ?? []}
+            onBulkDelete={handleBulkDelete}
+          />
+        )}
+        <EditDialog
+          application={editingApplication}
+          isOpen={isEditDialogOpen}
+          onClose={() => {
+            setIsEditDialogOpen(false);
+            setEditingApplication(null);
+          }}
+          onSave={handleSave}
+        />
       </div>
     </div>
-  )
+  );
 }

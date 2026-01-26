@@ -1,6 +1,6 @@
 "use server";
 
-import type { Application, ApplicationStatus } from "@/app/(private)/applications/types";
+import type { Application, ApplicationStatus } from "@/app/(private)/dashboard/types";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
 
@@ -12,6 +12,7 @@ export interface CreateApplicationInput {
   status: ApplicationStatus;
   platform: string;
   notes: string;
+  respondedAt?: Date;
 }
 
 export interface UpdateApplicationInput extends Partial<CreateApplicationInput> {
@@ -40,7 +41,7 @@ export async function getApplications(): Promise<Application[]> {
     throw new Error(`Failed to fetch applications: ${error.message}`);
   }
 
-  return (data || []).map((app: {
+  const applications = (data || []).map((app: {
     id: string;
     company_name: string;
     job_title: string;
@@ -49,6 +50,7 @@ export async function getApplications(): Promise<Application[]> {
     status: ApplicationStatus;
     platform: string;
     notes: string;
+    responded_at: string | null;
   }) => ({
     id: app.id,
     companyName: app.company_name,
@@ -58,7 +60,10 @@ export async function getApplications(): Promise<Application[]> {
     status: app.status,
     platform: app.platform,
     notes: app.notes,
+    respondedAt: app.responded_at ? new Date(app.responded_at) : undefined,
   }));
+
+  return applications;
 }
 
 /**
@@ -93,6 +98,7 @@ export async function getApplicationById(applicationId: string): Promise<Applica
     status: data.status,
     platform: data.platform,
     notes: data.notes,
+    respondedAt: data.responded_at ? new Date(data.responded_at) : undefined,
   };
 }
 
@@ -119,6 +125,7 @@ export async function createApplication(input: CreateApplicationInput): Promise<
       status: input.status,
       platform: input.platform,
       notes: input.notes,
+      responded_at: input.respondedAt ? input.respondedAt.toISOString() : null,
     })
     .select()
     .single();
@@ -138,6 +145,7 @@ export async function createApplication(input: CreateApplicationInput): Promise<
     status: data.status,
     platform: data.platform,
     notes: data.notes,
+    respondedAt: data.responded_at ? new Date(data.responded_at) : undefined,
   };
 }
 
@@ -162,6 +170,7 @@ export async function updateApplication(input: UpdateApplicationInput): Promise<
   if (input.status !== undefined) updateData.status = input.status;
   if (input.platform !== undefined) updateData.platform = input.platform;
   if (input.notes !== undefined) updateData.notes = input.notes;
+  if (input.respondedAt !== undefined) updateData.responded_at = input.respondedAt ? input.respondedAt.toISOString() : null;
 
   const { data, error } = await supabase
     .from("applications")
@@ -186,6 +195,7 @@ export async function updateApplication(input: UpdateApplicationInput): Promise<
     status: data.status,
     platform: data.platform,
     notes: data.notes,
+    respondedAt: data.responded_at ? new Date(data.responded_at) : undefined,
   };
 }
 
@@ -280,4 +290,126 @@ export async function getApplicationsCountByStatus(status: ApplicationStatus): P
   }
 
   return data?.[0]?.count ?? 0;
+}
+
+export interface StatusMetrics {
+  applied: number;
+  interviewing: number;
+  offer: number;
+  // rejected: number;
+  withdrawn: number;
+}
+
+export interface PlatformMetrics {
+  platform: string;
+  responseCount: number;
+  responseRate: number;
+}
+
+export interface MetricsData {
+  statusMetrics: StatusMetrics;
+  topPlatform: PlatformMetrics | null;
+  averageResponseTime: number | null;
+}
+
+/**
+ * Fetches comprehensive metrics for the user's applications
+ */
+export async function getApplicationsMetrics(): Promise<MetricsData> {
+  const supabase = await createServerSupabaseClient();
+
+  const { data: { user }, error: userError } = await supabase.auth.getUser();
+
+  if (userError || !user) {
+    throw new Error("Unauthorized");
+  }
+
+  // Fetch all applications for metrics calculation
+  const { data: applications, error } = await supabase
+    .from("applications")
+    .select("*")
+    .eq("user_id", user.id);
+
+  if (error) {
+    throw new Error(`Failed to fetch applications for metrics: ${error.message}`);
+  }
+
+  // Calculate status metrics
+  const statusMetrics: StatusMetrics = {
+    applied: 0,
+    interviewing: 0,
+    offer: 0,
+    // rejected: 0,
+    withdrawn: 0,
+  };
+
+  // Calculate platform metrics
+  const platformStats = new Map<string, { total: number; responded: number }>();
+
+  let totalResponseTime = 0;
+  let responseCount = 0;
+
+  applications?.forEach((app: {
+    status: ApplicationStatus;
+    platform: string;
+    date_applied: string;
+    responded_at: string | null;
+  }) => {
+    // Count by status (exclude rejected as it's not in StatusMetrics)
+    if (app.status !== "rejected" && app.status in statusMetrics) {
+      statusMetrics[app.status]++;
+    }
+
+    // Track platform statistics
+    if (!platformStats.has(app.platform)) {
+      platformStats.set(app.platform, { total: 0, responded: 0 });
+    }
+    const platformStat = platformStats.get(app.platform)!;
+    platformStat.total++;
+
+    // Count as "responded" if there's a responded_at date
+    if (app.responded_at) {
+      platformStat.responded++;
+
+      // Calculate response time (time from application to response)
+      // Exclude rejected applications from average response time calculation
+      if (app.status !== "rejected") {
+        const appliedDate = new Date(app.date_applied);
+        const respondedDate = new Date(app.responded_at);
+        const diffInDays = Math.floor(
+          (respondedDate.getTime() - appliedDate.getTime()) / (1000 * 60 * 60 * 24)
+        );
+
+        // Only count positive differences (responded_at should be after date_applied)
+        if (diffInDays > 0) {
+          totalResponseTime += diffInDays;
+          responseCount++;
+        }
+      }
+    }
+  });
+
+  // Find platform with most responses
+  let topPlatform: PlatformMetrics | null = null;
+  let maxResponses = 0;
+
+  platformStats.forEach((stats, platform) => {
+    if (stats.responded > maxResponses) {
+      maxResponses = stats.responded;
+      topPlatform = {
+        platform,
+        responseCount: stats.responded,
+        responseRate: stats.total > 0 ? (stats.responded / stats.total) * 100 : 0,
+      };
+    }
+  });
+
+  // Calculate average response time
+  const averageResponseTime = responseCount > 0 ? Math.round(totalResponseTime / responseCount) : null;
+
+  return {
+    statusMetrics,
+    topPlatform,
+    averageResponseTime,
+  };
 }

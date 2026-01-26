@@ -69,6 +69,7 @@ export function EditDialog({
       status: formData.status || application.status || "applied",
       platform: formData.platform?.trim() || "",
       notes: formData.notes?.trim() || "",
+      respondedAt: formData.respondedAt,
     });
     onClose();
   };
@@ -85,7 +86,7 @@ export function EditDialog({
     (formData.jobTitle?.trim() || "").length > 0;
 
   return (
-    <Dialog isOpen={isOpen} onClose={onClose}>
+    <Dialog open={isOpen} onOpenChange={onClose}>
       <DialogContent className="sm:max-w-[525px]">
         <DialogHeader>
           <DialogTitle>
@@ -163,6 +164,38 @@ export function EditDialog({
                 ))}
               </SelectContent>
             </Select>
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="respondedAt">Responded At (optional)</Label>
+            <div className="flex gap-2">
+              <Input
+                id="respondedAt"
+                type="date"
+                value={
+                  formData.respondedAt
+                    ? new Date(formData.respondedAt).toISOString().split("T")[0]
+                    : ""
+                }
+                onChange={(e) =>
+                  updateField("respondedAt", e.target.value ? new Date(e.target.value) : undefined)
+                }
+                className="flex-1"
+              />
+              {formData.respondedAt && (
+                <Button
+                  type="button"
+                  variant="outline"
+                  size="icon"
+                  onClick={() => updateField("respondedAt", undefined)}
+                  title="Clear date"
+                >
+                  ✕
+                </Button>
+              )}
+            </div>
+            <p className="text-xs text-muted-foreground">
+              Set when the platform/company responded to your application
+            </p>
           </div>
           <div className="grid gap-2">
             <Label htmlFor="platform">Platform</Label>

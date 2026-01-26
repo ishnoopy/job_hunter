@@ -1,8 +1,8 @@
 'use client'
 
-import Link from 'next/link'
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
+import Link from 'next/link'
 
 /**
  * Navigation component with auth-aware links
@@ -22,8 +22,9 @@ export function Navigation() {
       <div className="mx-auto max-w-7xl px-4 sm:px-6 lg:px-8">
         <div className="flex h-16 items-center justify-between">
           <div className="flex items-center gap-8">
-            <Link href="/" className="text-xl font-bold text-gray-900">
-              Application Tracker
+            <Link href="/" className="flex items-center gap-2">
+              <span className="text-2xl">🌱</span>
+              <span className="font-script text-2xl text-primary">Job Hunt</span>
             </Link>
             {isAuthenticated && (
               <div className="flex gap-4">
