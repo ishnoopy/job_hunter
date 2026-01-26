@@ -3,12 +3,16 @@
 import { useAuth } from '@/components/auth-provider'
 import { Button } from '@/components/ui/button'
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from '@/components/ui/card'
+import { useApplicationsCount, useApplicationsCountByStatus } from '@/lib/hooks/use-applications'
+import Link from 'next/link'
 
 /**
  * Protected dashboard page component
  */
 export default function DashboardPage() {
   const { user } = useAuth()
+  const { data: applicationsCount } = useApplicationsCount();
+  const { data: appliedApplicationsCount } = useApplicationsCountByStatus("applied");
 
   return (
     <div className="min-h-screen bg-bg-secondary px-4 py-12">
@@ -53,8 +57,9 @@ export default function DashboardPage() {
             </CardHeader>
             <CardContent>
               <div className="text-center py-8">
-                <p className="text-5xl font-semibold text-text-primary">0</p>
+                <p className="text-5xl font-semibold text-text-primary">{applicationsCount}</p>
                 <p className="text-sm text-text-tertiary mt-2">Total applications</p>
+                <p className="text-sm text-text-tertiary mt-2">Applied: {appliedApplicationsCount}</p>
               </div>
             </CardContent>
           </Card>
@@ -68,9 +73,11 @@ export default function DashboardPage() {
               <Button className="w-full" variant="default">
                 Add Application
               </Button>
-              <Button className="w-full" variant="outline">
-                View All
-              </Button>
+              <Link href="/applications">
+                <Button className="w-full" variant="outline">
+                  View All
+                </Button>
+              </Link>
             </CardContent>
           </Card>
         </div>

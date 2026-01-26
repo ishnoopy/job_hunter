@@ -2,6 +2,7 @@
 
 import { useAuth } from '@/components/auth-provider'
 import { UserMenu } from '@/components/user-menu'
+import { QueryProvider } from '@/lib/providers/query-provider'
 import Link from 'next/link'
 import { useRouter } from 'next/navigation'
 import type { ReactNode } from 'react'
@@ -34,16 +35,18 @@ export default function PrivateLayout({ children }: PrivateLayoutProps) {
     return null
   }
   return (
-    <div className="min-h-screen bg-bg-secondary">
-      <nav className="border-b border-border bg-bg-primary shadow-sm">
-        <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
-          <Link href="/dashboard" className="text-xl font-semibold text-text-primary hover:text-primary transition-colors">
-            Application Tracker
-          </Link>
-          <UserMenu />
-        </div>
-      </nav>
-      <main>{children}</main>
-    </div>
+    <QueryProvider>
+      <div className="min-h-screen bg-bg-secondary">
+        <nav className="border-b border-border bg-bg-primary shadow-sm">
+          <div className="mx-auto flex h-16 max-w-7xl items-center justify-between px-4">
+            <Link href="/dashboard" className="text-xl font-semibold text-text-primary hover:text-primary transition-colors">
+              Application Tracker
+            </Link>
+            <UserMenu />
+          </div>
+        </nav>
+        <main>{children}</main>
+      </div>
+    </QueryProvider>
   )
 }
