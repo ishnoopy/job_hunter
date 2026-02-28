@@ -140,6 +140,12 @@ export function ApplicationMetrics() {
       textColor: "--color-status-withdrawn",
       bgColor: "--color-status-withdrawn-bg",
     },
+    {
+      label: "Unlikely to Respond",
+      count: statusMetrics.unlikely_to_respond,
+      textColor: "--color-status-unlikely_to_respond",
+      bgColor: "--color-status-unlikely_to_respond-bg",
+    }
   ];
 
   return (

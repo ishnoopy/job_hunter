@@ -34,6 +34,7 @@ const statusOptions: ApplicationStatus[] = [
   "offer",
   "rejected",
   "withdrawn",
+  "unlikely_to_respond",
 ];
 
 const statusColors = {
@@ -42,6 +43,7 @@ const statusColors = {
   offer: "bg-green-100 text-green-700 border-green-200",
   rejected: "bg-red-100 text-red-700 border-red-200",
   withdrawn: "bg-gray-100 text-gray-700 border-gray-200",
+  unlikely_to_respond: "bg-yellow-100 text-yellow-700 border-yellow-200",
 };
 
 interface ColumnsProps {

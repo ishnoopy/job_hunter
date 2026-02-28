@@ -3,7 +3,8 @@ export type ApplicationStatus =
   | "interviewing"
   | "offer"
   | "rejected"
-  | "withdrawn";
+  | "withdrawn"
+  | "unlikely_to_respond";
 
 export interface Application {
   id: string;

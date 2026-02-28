@@ -1,9 +1,9 @@
 "use server";
 
 import type { Application, ApplicationStatus } from "@/app/(private)/dashboard/types";
+import { createRateLimiter, RateLimitPresets } from "@/lib/rate-limit";
 import { createServerSupabaseClient } from "@/lib/supabase-server";
 import { revalidatePath } from "next/cache";
-import { createRateLimiter, RateLimitPresets } from "@/lib/rate-limit";
 
 export interface CreateApplicationInput {
   companyName: string;
@@ -320,6 +320,7 @@ export interface StatusMetrics {
   offer: number;
   // rejected: number;
   withdrawn: number;
+  unlikely_to_respond: number;
 }
 
 export interface PlatformMetrics {
@@ -365,6 +366,7 @@ export async function getApplicationsMetrics(): Promise<MetricsData> {
     offer: 0,
     // rejected: 0,
     withdrawn: 0,
+    unlikely_to_respond: 0,
   };
 
   // Calculate platform metrics
